@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pickleball Organizer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+      background: #f8f8f8;
+      max-width: 700px;
+      margin: auto;
+      font-size: 1.1rem;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    input, button, select {
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .section {
+      background: white;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    ul {
+      padding-left: 1.5rem;
+    }
+    .game {
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.5rem;
+    }
+    .checkbox-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 2rem;
+      background: #f7faff;
+      padding: 0.7rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.7rem;
+      border: 1px solid #e3eafc;
+      position: relative;
+    }
+    .checkbox-item {
+      display: flex; /* aligns checkbox + label text inline */
+      align-items: center;
+      gap: 0.5rem;
+      justify-content: flex-start; /* align pair to left */
+      font-size: 0.95rem;
+      cursor: pointer;
+  
+    }
+    .checkbox-list label {
+
+      padding: 0.2em 0.5em;
+      font-size: 1.05em;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .checkbox-list label span {
+      display: inline-block;
+      min-width: 12px;
+      white-space: nowrap;
+      margin-left: 0.2em;
+
+    }
+    .checkbox-list label input[type="checkbox"] {
+      flex-shrink: 0;
+    }
+
+    /* Add vertical line between columns */
+    .checkbox-list {
+      column-gap: 2rem;
+    }
+    .checkbox-list > label:nth-child(2n) {
+      border-left: 1px solid #e3eafc;
+    }
+    label {
+      display: flex;
+      align-items: center;
+    }
+    input[type="checkbox"] {
+      margin-right: 0.5rem;
+    }
+    .score-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+    }
+    .score-controls input {
+      width: 80px;
+    }
+    .score-controls button {
+      width: 30px;
+      padding: 0.25rem;
+    }
+    .court-config {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .draggable {
+      cursor: grab;
+      padding: 0.3rem;
+      background: #e0e0e0;
+      margin: 0.2rem 0;
+      border-radius: 5px;
+    }
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: white;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      width: 90%;
+      max-width: 400px;
+    }
+    .modal-content h3 {
+      margin-top: 0;
+    }
+    .waiting-player {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f0f7ff;
+      border: 1px solid #b3d1ff;
+      margin: 0.3rem 0;
+      padding: 0.4rem 0.7rem;
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .player-name {
+      font-weight: 500;
+      color: #1a237e;
+    }
+    .timer-badge {
+      background: #1976d2;
+      color: #fff;
+      border-radius: 12px;
+      padding: 0.2em 0.8em;
+      margin: 0 0.7em;
+      font-size: 0.95em;
+      font-family: monospace;
+      min-width: 40px;
+      text-align: center;
+      display: inline-block;
+    }
+    button {
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      margin-left: 0.5em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #0d47a1;
+    }
+    .section {
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.07);
+      border: 1px solid #e3eafc;
+    }
+    h2 {
+      color: #1976d2;
+      margin-bottom: 0.7em;
+    }
+    .small-btn {
+  padding: 0.2em 0.6em;
+  font-size: 0.95em;
+  margin-left: 0.3em;
+  min-width: unset;
+  width: auto;
+  height: 1.8em;
+  line-height: 1;
+}
+    .game[style*="background: #fffbe7"] {
+    border: 2px solid #ffe066;
+}
+  </style>
+</head>
+<body>
+  <h1>Pickleball Organizer</h1>
+  <div class="section">
+    <label for="playerName">Player Name:</label>
+    <input type="text" id="playerName" placeholder="Enter your name" onkeypress="if(event.key==='Enter') joinQueue()" />
+    <button onclick="joinQueue()">Join Queue</button>
+  </div>
+
+  <div class="section">
+    <h2>Court Setup</h2>
+    <label for="courtName">Court Name:</label>
+    <input type="text" id="courtName" placeholder="Enter court name" onkeypress="if(event.key==='Enter') addCourt()" />
+    <button onclick="addCourt()">Add Court</button>
+    <ul id="courtList"></ul>
+  </div>
+
+  <div class="section">
+    <h2>Waiting Players</h2>
+    <ul id="waitingList" ondragover="event.preventDefault()" ondrop="handleDrop(event)"></ul>
+  </div>
+
+  <div class="section">
+    <h2>Manual Game Arrangement</h2>
+    <form id="manualForm" onsubmit="createManualGame(event)">
+      <div class="checkbox-list" id="checkboxList"></div>
+      <button type="submit">Create Game with Selected</button>
+    </form>
+  </div>
+
+  <div class="section">
+    <h2>Active Games</h2>
+    <div id="gamesList"></div>
+  </div>
+
+  <div class="section">
+    <h2>Future Games</h2>
+    <form id="futureForm" onsubmit="createFutureGame(event)">
+      <div class="checkbox-list" id="futureCheckboxList"></div>
+      <select id="futureCourtSelect"></select>
+      <button type="submit">Add Future Game</button>
+    </form>
+    <div id="futureGamesList"></div>
+  </div>
+
+  <div class="section">
+    <h2>Suggested Games</h2>
+    <div id="suggestedGamesList"></div>
+    <button onclick="suggestGames()">Suggest Games</button>
+  </div>
+
+  <div class="section">
+    <h2>Player Stats</h2>
+    <ul id="statsList"></ul>
+  </div>
+
+  <div id="modalContainer"></div>
+
+  <script>
+let courts = [];
+let games = [];
+let playerStats = {};
+let draggedIndex = null;
+let futureGames = [];
+let suggestedGames = [];
+let queueTimes = {}; // Track join times
+
+function joinQueue() {
+  const input = document.getElementById("playerName");
+  const name = input.value.trim();
+  if (!name || playerStats[name] || isPlaying(name)) return;
+  playerStats[name] = { gamesPlayed: 0, wins: 0, losses: 0 };
+  queueTimes[name] = Date.now(); // Start timer
+  input.value = "";
+  updateDisplay();
+}
+
+function suggestGames() {
+  const allPlayers = Object.keys(playerStats);
+  const courtsCount = courts.length || 1;
+  const groupings = {};
+  const teamings = {};
+  const partnerCounts = {}; // Track how many times each pair has been partners
+  const playerGameCounts = {};
+  allPlayers.forEach(p => playerGameCounts[p] = playerStats[p].gamesPlayed);
+
+  // Helper to get a unique key for a pair
+  function pairKey(a, b) {
+    return [a, b].sort().join("|");
+  }
+
+  // Count future, suggested, and active games for groupings, teamings, and partner counts
+  function countGame(g) {
+    g.players.forEach(p => playerGameCounts[p]++);
+    const groupKey = [...g.players].sort().join(",");
+    groupings[groupKey] = (groupings[groupKey] || 0) + 1;
+    const teamKey = [g.teamA.slice().sort().join(","), g.teamB.slice().sort().join(",")].sort().join("|");
+    if (!teamings[groupKey]) teamings[groupKey] = [];
+    teamings[groupKey].push(teamKey);
+    // Count partners
+    [g.teamA, g.teamB].forEach(team => {
+      for (let i = 0; i < team.length; i++) {
+        for (let j = i + 1; j < team.length; j++) {
+          const key = pairKey(team[i], team[j]);
+          partnerCounts[key] = (partnerCounts[key] || 0) + 1;
+        }
+      }
+    });
+  }
+
+  futureGames.concat(suggestedGames).forEach(countGame);
+  games.forEach(countGame);
+
+  let planned = [];
+  let attempts = 0;
+  const maxSuggestions = 3;
+
+  while (planned.length < maxSuggestions && attempts < 100) {
+    const candidates = allPlayers.slice().sort((a, b) => playerGameCounts[a] - playerGameCounts[b]);
+    let found = false;
+    for (let i = 0; i < candidates.length - 3 && !found; i++) {
+      for (let j = i+1; j < candidates.length - 2 && !found; j++) {
+        for (let k = j+1; k < candidates.length - 1 && !found; k++) {
+          for (let l = k+1; l < candidates.length && !found; l++) {
+            const group = [candidates[i], candidates[j], candidates[k], candidates[l]];
+            const groupKey = group.slice().sort().join(",");
+            if ((groupings[groupKey] || 0) < 2 && !planned.some(g => g.players.sort().join(",") === groupKey)) {
+              // Try all possible team splits, pick the one with the least total partner repeats
+              const splits = [
+                [[group[0], group[1]], [group[2], group[3]]],
+                [[group[0], group[2]], [group[1], group[3]]],
+                [[group[0], group[3]], [group[1], group[2]]]
+              ];
+              let bestSplit = null;
+              let minPartnerRepeats = Infinity;
+              for (const [teamA, teamB] of splits) {
+                const repeats =
+                  (partnerCounts[pairKey(teamA[0], teamA[1])] || 0) +
+                  (partnerCounts[pairKey(teamB[0], teamB[1])] || 0);
+                if (repeats < minPartnerRepeats) {
+                  minPartnerRepeats = repeats;
+                  bestSplit = { teamA, teamB };
+                }
+              }
+              if (bestSplit) {
+                planned.push({
+                  players: group,
+                  teamA: bestSplit.teamA,
+                  teamB: bestSplit.teamB,
+                  court: courts[planned.length % courtsCount]?.name || "Court"
+                });
+                // Update counts for next iteration
+                group.forEach(p => playerGameCounts[p]++);
+                groupings[groupKey] = (groupings[groupKey] || 0) + 1;
+                [bestSplit.teamA, bestSplit.teamB].forEach(team => {
+                  const key = pairKey(team[0], team[1]);
+                  partnerCounts[key] = (partnerCounts[key] || 0) + 1;
+                });
+                found = true;
+              }
+            }
+          }
+        }
+      }
+    }
+    if (!found) break;
+    attempts++;
+  }
+
+  suggestedGames = planned;
+  updateDisplay();
+}
+
+function addCourt() {
+  const input = document.getElementById("courtName");
+  const name = input.value.trim();
+  if (!name || courts.some(c => c.name === name)) return;
+  courts.push({ name, inUse: false });
+  input.value = "";
+  updateDisplay();
+}
+
+function tryAutoGame() {
+  // Promote the first future game if courts are available
+  while (futureGames.length > 0) {
+    const availableCourt = courts.find(c => !c.inUse);
+    if (!availableCourt) break;
+    const g = futureGames.shift();
+    addGame(g.players, g.court);
+  }
+  updateDisplay();
+}
+
+function createManualGame(event) {
+  event.preventDefault();
+  const selected = Array.from(document.querySelectorAll("#checkboxList input:checked")).map(cb => cb.value);
+  if (selected.length !== 4) return alert("Select exactly 4 players.");
+  const availableCourt = courts.find(c => !c.inUse);
+  if (!availableCourt) return alert("No available courts.");
+  addGame(selected, availableCourt.name);
+  updateDisplay();
+}
+
+function addGame(players, courtName) {
+  const court = courts.find(c => c.name === courtName);
+  if (court) court.inUse = true;
+  games.push({ court: courtName, players: [...players], teamA: players.slice(0,2), teamB: players.slice(2), scoreA: 0, scoreB: 0, started: true });
+  updateDisplay();
+}
+
+function endGame(index) {
+  const game = games.splice(index, 1)[0];
+  const court = courts.find(c => c.name === game.court);
+  if (court) court.inUse = false;
+  const { teamA, teamB, scoreA, scoreB, started } = game;
+  if (!started) return;
+  teamA.forEach(p => playerStats[p].gamesPlayed++);
+  teamB.forEach(p => playerStats[p].gamesPlayed++);
+  if (scoreA > scoreB) {
+    teamA.forEach(p => playerStats[p].wins++);
+    teamB.forEach(p => playerStats[p].losses++);
+  } else if (scoreB > scoreA) {
+    teamB.forEach(p => playerStats[p].wins++);
+    teamA.forEach(p => playerStats[p].losses++);
+  }
+  // Reset timer for all players who just finished
+  [...teamA, ...teamB].forEach(p => queueTimes[p] = Date.now());
+  updateDisplay();
+}
+
+function isPlaying(name) {
+  return games.some(g => g.players.includes(name));
+}
+
+function getWaitingPlayers() {
+  // All players not currently in an active game
+  return Object.keys(playerStats).filter(name => !isPlaying(name));
+}
+
+function updateScore(index, team, delta) {
+  const g = games[index];
+  if (team === 'A') g.scoreA += delta;
+  if (team === 'B') g.scoreB += delta;
+  g.scoreA = Math.max(0, g.scoreA);
+  g.scoreB = Math.max(0, g.scoreB);
+  updateDisplay();
+}
+
+function setScore(index, team, value) {
+  const g = games[index];
+  const v = Math.max(0, parseInt(value) || 0);
+  if (team === 'A') g.scoreA = v;
+  if (team === 'B') g.scoreB = v;
+  updateDisplay();
+}
+
+function handleDragStart(event, index) {
+  draggedIndex = index;
+}
+
+function handleDrop(event) {
+  // Optional: implement drag-and-drop for waiting list if desired
+}
+
+function deleteCourt(index) {
+  // Remove court and any games/futureGames using it
+  const courtName = courts[index].name;
+  courts.splice(index, 1);
+  games = games.filter(g => g.court !== courtName);
+  futureGames = futureGames.filter(g => g.court !== courtName);
+  updateDisplay();
+}
+
+function editCourt(index) {
+  const court = courts[index];
+  const newName = prompt("Edit court name:", court.name);
+  if (newName && !courts.some(c => c.name === newName)) {
+    // Update court name in courts, games, and futureGames
+    courts[index].name = newName;
+    games.forEach(g => { if (g.court === court.name) g.court = newName; });
+    futureGames.forEach(g => { if (g.court === court.name) g.court = newName; });
+    updateDisplay();
+  }
+}
+
+function deletePlayer(name) {
+  delete playerStats[name];
+  delete queueTimes[name];
+  games = games.filter(g => !g.players.includes(name));
+  futureGames = futureGames.filter(g => !g.players.includes(name));
+  updateDisplay();
+}
+
+function deleteGame(index) {
+  games.splice(index, 1);
+  updateDisplay();
+}
+
+function updateDisplay() {
+  // COURT LIST with delete/edit
+  document.getElementById("courtList").innerHTML = courts.map((c, i) =>
+    `<li>
+      ${c.name} ${c.inUse ? '🟢' : '⚪'}
+      <button class="small-btn" onclick="editCourt(${i})">Edit</button>
+      <button class="small-btn" onclick="deleteCourt(${i})">Delete</button>
+    </li>`
+  ).join("");
+
+  // WAITING LIST with delete and timer
+  const wl = document.getElementById("waitingList");
+  wl.innerHTML = "";
+  getWaitingPlayers().forEach((n, i) => {
+    const li = document.createElement("li");
+    li.className = "draggable waiting-player";
+    // li.draggable = true;
+    // li.ondragstart = e => handleDragStart(e, i);
+
+    // Timer badge
+    const timer = document.createElement("span");
+    timer.className = "timer-badge";
+    timer.id = `timer-${n}`;
+    timer.textContent = formatWaitTime(queueTimes[n]);
+
+    li.innerHTML = `<span class="player-name">${i + 1}. ${n}</span>`;
+    li.appendChild(timer);
+
+    // Delete button
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "Delete";
+    delBtn.className = "small-btn";
+    delBtn.onclick = () => deletePlayer(n);
+    li.appendChild(delBtn);
+
+    wl.appendChild(li);
+  });
+
+  // For manual game arrangement
+  const checkboxList = document.getElementById("checkboxList");
+  checkboxList.innerHTML = "";
+  Object.keys(playerStats).forEach(name => {
+    const label = document.createElement("label");
+    label.className = "checkbox-item";
+    // Disable checkbox if player is currently playing
+    label.innerHTML = `
+      <input type="checkbox" value="${name}" ${isPlaying(name) ? "disabled" : ""}>
+      <span>${name}</span>
+    `;
+    checkboxList.appendChild(label);
+  });
+
+  // Active games with delete
+  const gamesList = document.getElementById("gamesList");
+  gamesList.innerHTML = "";
+  games.forEach((g, i) => {
+    const div = document.createElement("div");
+    div.className = "game";
+    div.innerHTML = `
+      <strong>${g.court}</strong><br>
+      <strong>Team A</strong><br>${g.teamA.join(", ")}<br>
+      <strong>Team B</strong><br>${g.teamB.join(", ")}<br>
+      <div class="score-controls">
+        A: 
+        <button class="small-btn" onclick="updateScore(${i}, 'A', -1)">-</button>
+        <input type="number" min="0" value="${g.scoreA}" style="width:50px" onchange="setScore(${i}, 'A', this.value)">
+        <button class="small-btn" onclick="updateScore(${i}, 'A', 1)">+</button>
+        &nbsp; 
+        B: 
+        <button class="small-btn" onclick="updateScore(${i}, 'B', -1)">-</button>
+        <input type="number" min="0" value="${g.scoreB}" style="width:50px" onchange="setScore(${i}, 'B', this.value)">
+        <button class="small-btn" onclick="updateScore(${i}, 'B', 1)">+</button>
+      </div>
+      <button class="small-btn" onclick="editGame(${i})">Edit</button>
+      <button class="small-btn" onclick="endGame(${i})">Game Over</button>
+      <button class="small-btn" onclick="deleteGame(${i})">Delete</button>
+      <button class="small-btn" onclick="showReplaceGameModal(${i})">Replace with Future Game</button>
+    `;
+    gamesList.appendChild(div);
+  });
+
+  // Future Games form (show all players, don't remove from queue)
+  const futureCheckboxList = document.getElementById("futureCheckboxList");
+  if (futureCheckboxList) {
+    futureCheckboxList.innerHTML = "";
+    Object.keys(playerStats).forEach(name => {
+      const label = document.createElement("label");
+      label.className = "checkbox-item";
+      label.innerHTML = `
+        <input type="checkbox" value="${name}">
+        <span>${name}</span>
+      `;
+      futureCheckboxList.appendChild(label);
+    });
+  }
+  const futureCourtSelect = document.getElementById("futureCourtSelect");
+  if (futureCourtSelect) {
+    futureCourtSelect.innerHTML = courts.map(c => `<option value="${c.name}">${c.name}</option>`).join("");
+  }
+
+  // Future Games list (show all players in dropdowns)
+  const futureGamesList = document.getElementById("futureGamesList");
+  if (futureGamesList) {
+    futureGamesList.innerHTML = "";
+    futureGames.forEach((g, i) => {
+      const div = document.createElement("div");
+      div.className = "game";
+      if (i === 0) div.style.background = "#fffbe7"; // Highlight first future game
+      div.innerHTML = `
+        <strong>
+          <select onchange="editFutureGameCourt(${i}, this.value)">
+            ${courts.map(c => `<option value="${c.name}" ${c.name === g.court ? "selected" : ""}>${c.name}</option>`).join("")}
+          </select>
+        </strong><br>
+        <strong>Team A</strong><br>
+        <select onchange="editFutureGamePlayer(${i}, 'A', 0, this.value)">
+          ${Object.keys(playerStats).map(p => `<option value="${p}" ${p === g.teamA[0] ? "selected" : ""}>${p}</option>`).join("")}
+        </select>
+        <select onchange="editFutureGamePlayer(${i}, 'A', 1, this.value)">
+          ${Object.keys(playerStats).map(p => `<option value="${p}" ${p === g.teamA[1] ? "selected" : ""}>${p}</option>`).join("")}
+        </select><br>
+        <strong>Team B</strong><br>
+        <select onchange="editFutureGamePlayer(${i}, 'B', 0, this.value)">
+          ${Object.keys(playerStats).map(p => `<option value="${p}" ${p === g.teamB[0] ? "selected" : ""}>${p}</option>`).join("")}
+        </select>
+        <select onchange="editFutureGamePlayer(${i}, 'B', 1, this.value)">
+          ${Object.keys(playerStats).map(p => `<option value="${p}" ${p === g.teamB[1] ? "selected" : ""}>${p}</option>`).join("")}
+        </select><br>
+        <button class="small-btn" onclick="moveFutureGame(${i}, -1)">↑</button>
+        <button class="small-btn" onclick="moveFutureGame(${i}, 1)">↓</button>
+        <button class="small-btn" onclick="removeFutureGame(${i})">Remove</button>
+        <button class="small-btn" onclick="sendFutureGameToActive(${i})">Send to Active</button>
+      `;
+      futureGamesList.appendChild(div);
+    });
+
+  const statsList = document.getElementById("statsList");
+  if (Object.keys(playerStats).length === 0) {
+    statsList.innerHTML = "<em>No players yet.</em>";
+  } else {
+    statsList.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:#f0f7ff;">
+            <th style="text-align:left;padding:6px 8px;">Player</th>
+            <th style="text-align:right;padding:6px 8px;">Games</th>
+            <th style="text-align:right;padding:6px 8px;">Wins</th>
+            <th style="text-align:right;padding:6px 8px;">Losses</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${Object.entries(playerStats).map(([name, s]) => `
+            <tr>
+              <td style="padding:6px 8px;">${name}</td>
+              <td style="text-align:right;padding:6px 8px;">${s.gamesPlayed}</td>
+              <td style="text-align:right;padding:6px 8px;">${s.wins}</td>
+              <td style="text-align:right;padding:6px 8px;">${s.losses}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+      const suggestedGamesList = document.getElementById("suggestedGamesList");
+if (suggestedGamesList) {
+  suggestedGamesList.innerHTML = "";
+  suggestedGames.forEach((g, i) => {
+    const div = document.createElement("div");
+    div.className = "game";
+    div.innerHTML = `
+      <strong>Suggested Court: ${g.court}</strong><br>
+      <strong>Team A:</strong> ${g.teamA.join(", ")}<br>
+      <strong>Team B:</strong> ${g.teamB.join(", ")}<br>
+      <button class="small-btn" onclick="approveSuggestedGame(${i})">Approve</button>
+      <button class="small-btn" onclick="rejectSuggestedGame(${i})">Reject</button>
+    `;
+    suggestedGamesList.appendChild(div);
+  });
+}
+  }
+}
+
+function editGame(index) {
+  const g = games[index];
+  const allPlayers = Object.keys(playerStats);
+  const container = document.getElementById("modalContainer");
+
+  function playerSelect(team, pos, current) {
+    return `
+      <select id="edit-${team}-${pos}">
+        ${allPlayers.map(p => `<option value="${p}" ${p === current ? "selected" : ""}>${p}</option>`).join("")}
+      </select>
+    `;
+  }
+
+  container.innerHTML = `
+    <div class="modal">
+      <div class="modal-content">
+        <h3>Edit Game: ${g.court}</h3>
+        <strong>Team A:</strong>
+        <div>${playerSelect('A', 0, g.teamA[0])}</div>
+        <div>${playerSelect('A', 1, g.teamA[1])}</div>
+        <strong>Team B:</strong>
+        <div>${playerSelect('B', 0, g.teamB[0])}</div>
+        <div>${playerSelect('B', 1, g.teamB[1])}</div>
+        <button onclick="saveGameEdit(${index})">Save</button>
+        <button onclick="closeModal()">Close</button>
+      </div>
+    </div>`;
+}
+
+function approveSuggestedGame(index) {
+  const g = suggestedGames.splice(index, 1)[0];
+  futureGames.push(g);
+  updateDisplay();
+}
+
+function rejectSuggestedGame(index) {
+  suggestedGames.splice(index, 1);
+  updateDisplay();
+}
+
+function saveGameEdit(index) {
+  const g = games[index];
+  const getVal = (team, pos) => document.getElementById(`edit-${team}-${pos}`).value;
+  // Prevent duplicate players in the same game
+  const newPlayers = [getVal('A',0), getVal('A',1), getVal('B',0), getVal('B',1)];
+  if (new Set(newPlayers).size < 4) {
+    alert("Each player must be unique.");
+    return;
+  }
+  g.teamA = [getVal('A',0), getVal('A',1)];
+  g.teamB = [getVal('B',0), getVal('B',1)];
+  g.players = [...g.teamA, ...g.teamB];
+  closeModal();
+  updateDisplay();
+}
+
+function closeModal() {
+  document.getElementById("modalContainer").innerHTML = "";
+}
+
+function createFutureGame(event) {
+  event.preventDefault();
+  const selected = Array.from(document.querySelectorAll("#futureCheckboxList input:checked")).map(cb => cb.value);
+  if (selected.length !== 4) return alert("Select exactly 4 players.");
+  const court = document.getElementById("futureCourtSelect").value;
+  futureGames.push({
+    court,
+    players: [...selected],
+    teamA: selected.slice(0,2),
+    teamB: selected.slice(2)
+  });
+  updateDisplay();
+}
+
+function editFutureGamePlayer(index, team, pos, value) {
+  const g = futureGames[index];
+  if (team === 'A') g.teamA[pos] = value;
+  if (team === 'B') g.teamB[pos] = value;
+  g.players = [...g.teamA, ...g.teamB];
+  // Prevent duplicates
+  if (new Set(g.players).size < 4) {
+    alert("Each player must be unique.");
+    updateDisplay();
+    return;
+  }
+}
+
+function editFutureGameCourt(index, value) {
+  futureGames[index].court = value;
+}
+
+function moveFutureGame(index, dir) {
+  const newIndex = index + dir;
+  if (newIndex < 0 || newIndex >= futureGames.length) return;
+  const [g] = futureGames.splice(index, 1);
+  futureGames.splice(newIndex, 0, g);
+  updateDisplay();
+}
+
+function removeFutureGame(index) {
+  futureGames.splice(index, 1);
+  updateDisplay();
+}
+
+function sendFutureGameToActive(index) {
+  const availableCourt = courts.find(c => !c.inUse);
+  if (!availableCourt) {
+    alert("No available courts.");
+    return;
+  }
+  const g = futureGames.splice(index, 1)[0];
+  addGame(g.players, g.court);
+  updateDisplay();
+}
+
+function showReplaceGameModal(activeIndex) {
+  const container = document.getElementById("modalContainer");
+  container.innerHTML = `
+    <div class="modal">
+      <div class="modal-content">
+        <h3>Replace Active Game</h3>
+        <div>
+          ${futureGames.map((g, i) => `
+            <div style="margin-bottom:0.5em;">
+              <strong>${g.court}</strong> - ${g.teamA.join(", ")} vs ${g.teamB.join(", ")}
+              <button class="small-btn" onclick="replaceActiveGame(${activeIndex}, ${i})">Replace</button>
+            </div>
+          `).join("")}
+        </div>
+        <button class="small-btn" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  `;
+}
+
+function replaceActiveGame(activeIndex, futureIndex) {
+  const g = futureGames.splice(futureIndex, 1)[0];
+  const court = games[activeIndex].court;
+  games[activeIndex] = {
+    court,
+    players: [...g.players],
+    teamA: [...g.teamA],
+    teamB: [...g.teamB],
+    scoreA: 0,
+    scoreB: 0,
+    started: true
+  };
+  closeModal();
+  updateDisplay();
+}
+
+// Helper to format elapsed time
+function formatWaitTime(start) {
+  if (!start) return "0:00";
+  const elapsed = Math.floor((Date.now() - start) / 1000);
+  const min = Math.floor(elapsed / 60);
+  const sec = elapsed % 60;
+  return `${min}:${sec.toString().padStart(2, "0")}`;
+}
+
+// Update timers every second
+setInterval(() => {
+  getWaitingPlayers().forEach(n => {
+    const timer = document.getElementById(`timer-${n}`);
+    if (timer) timer.textContent = formatWaitTime(queueTimes[n]);
+  });
+}, 1000);
+
+updateDisplay();
+  </script>
+</body>
+</html>
